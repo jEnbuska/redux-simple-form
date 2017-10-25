@@ -18,7 +18,10 @@ class MiscForm extends React.Component {
         const { newTodo, todos, firstname, lastname, address, mood, password, gender, favoriteFood, } = this.props.form;
         return (
             <form className="form">
-                {entries({ firstname, lastname, }).map(([ k, v, ]) => <TextInput required key={k}{...v}/>)}
+                <div>
+                    <h3>Name</h3>
+                    {entries({ firstname, lastname, }).map(([ k, v, ]) => <TextInput required key={k}{...v}/>)}
+                </div>
                 <div>
                     <h3>Address</h3>
                     {values(address).map(next => <TextInput required key={next.input.name} {...next}/>)}
