@@ -1,12 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import MiscForm from './containers/MiscForm';
 import { Provider, } from 'react-redux';
-import { combineReducers, createStore, } from 'redux';
-import form from '../../src/reducer';
+import MiscForm from './containers/MiscForm';
 
-const rootReducer = combineReducers({ form, });
-const store = createStore(rootReducer, window.devToolsExtension && window.devToolsExtension());
+
+import store from './store';
+
 const Root = () => (
     <Provider store={store}>
         <MiscForm />

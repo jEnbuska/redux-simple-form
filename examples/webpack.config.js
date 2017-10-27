@@ -3,7 +3,8 @@ const path = require('path');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const autoprefixer = require('autoprefixer');
-const vendor = [ 'react', 'prop-types', 'react-dom', 'react-router', 'uuid', 'redux', 'react-redux', ];
+
+const vendor = ['react', 'prop-types', 'react-dom', 'react-router', 'uuid', 'redux', 'react-redux', ];
 const distPath = path.join(__dirname, 'dist');
 const context = path.join(__dirname, 'src');
 const getPostCssPlugins = () => [
@@ -22,7 +23,7 @@ module.exports = ({
         vendor,
     },
     resolve: {
-        extensions: [ '.js', '.jsx', ],
+        extensions: ['.js', '.jsx', ],
         modules: [
             path.resolve(__dirname, 'node_modules'),
             context,
@@ -41,7 +42,7 @@ module.exports = ({
                 use: 'babel-loader',
             },
             {
-                test: [ /\.scss$/, /\.css$/, ],
+                test: [/\.scss$/, /\.css$/, ],
                 exclude: /node_modules/,
                 use: ExtractTextPlugin.extract({
                     fallback: 'style-loader',
@@ -69,7 +70,7 @@ module.exports = ({
         }),
         new webpack.NamedModulesPlugin(),
         new webpack.optimize.CommonsChunkPlugin({
-            names: [ 'vendor', 'manifest', 'index', ],
+            names: ['vendor', 'manifest', 'index', ],
         }),
         new webpack.DefinePlugin({
             'process.env': {

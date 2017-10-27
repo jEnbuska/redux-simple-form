@@ -1,5 +1,5 @@
 import React from 'react';
-import { object, func, } from 'prop-types';
+import {object, func, } from 'prop-types';
 import {
     ON_FOCUS,
     INIT_FORM,
@@ -14,63 +14,72 @@ import {
     ON_MOUSE_OUT,
 } from './reducer';
 import {
-    formatRawValueRecursively,
-    createInvalidityRecursively,
     findProperties,
+    parseDefinition,
+    $any,
+    mergeStateWithShape,
+    createStateFromShape,
 } from './utils';
 
-const { entries, assign, } = Object;
+const { entries, assign, defineProperties, } = Object;
 let forms = 0;
 
-const connector = (Component, { emptyState, validate = {}, format = {}, initialState, formReducer = 'form', form = 'form' + forms++, actions = 'actions', }) => {
+const connector = (Component, { shape, initialState, formReducer = 'form', form = `form${forms++}`, actions = 'actions', }) => {
+    const formInputShape = parseDefinition(shape, form);
     let dispatch;
     return class FormConnect extends React.Component {
-
         static contextTypes = {
             store: object,
         };
 
         formSubscription;
         initialStateSubscription;
-        state = {};
 
-        componentWillMount () {
+        componentWillMount() {
             const { dispatch: d, getState, subscribe, } = this.context.store;
             dispatch = d;
-            let formState = initialState && initialState(getState());
-            const value = formatRawValueRecursively(formState || emptyState, format);
-            const invalidity = createInvalidityRecursively(value, validate);
-            dispatch({ type: INIT_FORM, payload: { form, invalidity, value, }, });
-            if (!formState && initialState) {
-                this.initialStateSubscription = subscribe(() => {
-                    const formState = initialState(getState());
-                    if (formState) {
-                        this.initialStateSubscription();
-                        delete this.initialStateSubscription;
-                        const value = formatRawValueRecursively(formState, format);
-                        const invalidity = createInvalidityRecursively(value, validate);
-                        dispatch({ type: SET_INITIAL_STATE, payload: { form, invalidity, value, }, });
-                    }
-                });
+            const formState = initialState && initialState(getState());
+            if (formState) {
+                console.log({ formState });
+                const value = mergeStateWithShape(formState, formInputShape);
+
+                dispatch({ type: SET_INITIAL_STATE, payload: { form, value, }, });
+            } else {
+                const value = createStateFromShape(formInputShape);
+                dispatch({ type: INIT_FORM, payload: { form, value, }, });
+                if (initialState) {
+                    this.initialStateSubscription = subscribe(() => {
+                        const formState = initialState(getState());
+                        if (formState) {
+                            this.initialStateSubscription();
+                            delete this.initialStateSubscription;
+                            const value = mergeStateWithShape(formState, formInputShape);
+                            dispatch({ type: SET_INITIAL_STATE, payload: { form, value, }, });
+                        }
+                    });
+                }
             }
             let prevForm = getState()[formReducer][form];
-            let componentProps = this.mergeActionsWithFormState(prevForm);
+            let componentProps = this.mergeActionsWithFormState(prevForm, formInputShape);
             this.setState({ componentProps, });
             this.formSubscription = subscribe(() => {
                 const formState = getState()[formReducer][form];
                 if (formState !== prevForm) {
-                    componentProps = this.mergeActionsWithFormState(formState, prevForm, componentProps);
+                    componentProps = this.mergeActionsWithFormState(formState, formInputShape, prevForm, componentProps);
                     prevForm = formState;
                     this.setState({ componentProps, });
                 }
             });
         }
 
-        mergeActionsWithFormState (subForm, preSubForm = {}, prevState = {}, path = []) {
-            const { __meta__, input, } = subForm;
+        mergeActionsWithFormState(subForm, subShape, preSubForm = {}, prevState = {}, path = []) {
+            const { __meta__, input, ...rest } = subForm;
             if (__meta__) {
+                if (input.onFocus) {
+                    return { ...rest, input, };
+                }
                 return {
-                    ...subForm,
+                    ...rest,
                     input: {
                         ...input,
                         onFocus: FormConnect.createOnFocus(path),
@@ -80,102 +89,118 @@ const connector = (Component, { emptyState, validate = {}, format = {}, initialS
                         onMouseOut: FormConnect.createEvent(ON_MOUSE_OUT, path),
                     },
                 };
-            } else {
-                const result = entries(subForm)
-                    .reduce((acc, [ k, v, ]) => {
-                        if (preSubForm[k] === v) {
-                            return assign(acc, { [k]: prevState[k], });
-                        }
-                        return assign(acc, { [k]: this.mergeActionsWithFormState(v, preSubForm[k], prevState[k], [ ...path, k, ]), });
-                    }, {});
-                Object.defineProperties(result, {
+            }
+            const result = entries(subForm)
+                .filter(([k]) => subShape[k] || subShape[$any])
+                .filter(([k,]) => subForm[k] || subForm[$any])
+                .reduce((acc, [name, value,]) => {
+                    if (preSubForm[name] === value) {
+                        return assign(acc, { [name]: prevState[name], });
+                    }
+                    const mergeResult = {
+                        [name]: this.mergeActionsWithFormState(
+                            value,
+                            subShape[name] || subShape[$any],
+                            preSubForm[name],
+                            prevState[name],
+                            [...path, name,]
+                        ),
+                    };
+                    return assign(acc, mergeResult);
+                }, {});
+            if (!result[actions]) {
+                defineProperties(result, {
                     [actions]: {
                         enumerable: false,
                         value: {
+                            writable: false,
                             onAssign: FormConnect.createOnAssign(path),
-                            onRemove: FormConnect.createEvent(ON_REMOVE, path),
-                            getState () {
+                            onRemove: FormConnect.createOnRemove(path),
+                            getState() {
                                 return FormConnect.getState(subForm);
                             },
                         },
-
                     },
                 });
-                return result;
             }
+            return result;
         }
 
-        render () {
+        render() {
+            const { componentProps } = this.state;
             return (<Component
-                {...this.props}
-                {...{ form: this.state.componentProps, }}/>);
+              {...this.props}
+              {...{ form: componentProps, }}/>);
         }
 
-        static getState (componentProps, acc = {}) {
-            if (componentProps.__meta__) {
-                return componentProps.input.value;
+        static getState(componentProps, acc = {}) {
+            const { __meta__, input, } = componentProps;
+            if (__meta__) {
+                const { type, value, checked, } = input;
+                if (type === 'checkbox') {
+                    return checked;
+                }
+                return value;
             }
             return entries(componentProps)
-                .reduce((acc, [ k, v, ]) => assign(acc, { [k]: FormConnect.getState(v), }), acc);
+                .reduce((acc, [k, v, ]) => assign(acc, { [k]: FormConnect.getState(v), }), acc);
         }
 
-        static createOnFocus (path) {
-            return function onFocusProxy () {
+        static createOnFocus(path) {
+            return function onFocusProxy() {
                 dispatch({ type: ON_FOCUS, payload: { form, path, }, });
             };
         }
 
-        static createOnChange (path) {
-            return function onChangeProxy (event) {
-                const formatter = findProperties(path, format);
-                const validator = findProperties(path, validate);
+        static createOnChange(path) {
+            return function onChangeProxy(event) {
+                const { format, validate, } = findProperties(path, formInputShape);
+                const { input } = findProperties(path, this.state.componentProps);
                 let invalid = false;
-                let { value, } = event.target || { value: event, };
-                if (formatter) {
-                    value = formatter(value);
+                let nextVal;
+                if (input.type === 'checkbox') {
+                    nextVal = !input.checked;
+                } else {
+                    nextVal = event.target ? event.target.value : event;
                 }
-                switch (event.target && event.target.type) {
-                    case 'password':
-                    case 'number':
-                    case 'radio':
-                    case 'text': {
-                        if (validator) invalid = !(validator.test ? validator.test(value) : validator(value));
-                        dispatch({ type: ON_CHANGE, payload: { value, path, form, invalid, }, });
-                        break;
-                    }
-                    case 'checkbox': {
-                        const { input: { checked, }, }= findProperties(path, this.state.componentProps);
-                        if (validator) invalid = validator(!checked);
-                        dispatch({ type: ON_CHECK_CHANGE, payload: { invalid, checked: !checked, form, path, }, });
-                        break;
-                    }
-                    default:
-                        if (validator) invalid = !(validator.test ? validator.test(value) : validator(value));
-                        dispatch({ type: ON_CHANGE, payload: { value, path, form, invalid, }, });
+                if (format) {
+                    nextVal = format(nextVal);
+                }
+                if (validate) {
+                    invalid = !(validate.test ? validate.test(nextVal) : validate(nextVal));
+                }
+                if (input.type === 'checkbox') {
+                    dispatch({ type: ON_CHECK_CHANGE, payload: { form, path, checked: nextVal, invalid } });
+                } else {
+                    dispatch({ type: ON_CHANGE, payload: { form, path, value: nextVal, invalid } });
                 }
             };
         }
 
-        static createEvent (type, path) {
-            return function eventProxy () {
+        static createEvent(type, path) {
+            return function eventProxy() {
                 dispatch({ type, payload: { form, path, }, });
             };
         }
 
-        static createOnAssign (path) {
-            return function onAssignProxy (value) {
-                const formatter = findProperties(path, format);
-                const validator = findProperties(path, validate);
-                if (!value || !(value instanceof Object)) {
-                    throw new Error('expect onAssign value to be instance of object');
-                }
-                value = formatRawValueRecursively(value, formatter);
-                const invalidity = createInvalidityRecursively(value, validator);
-                dispatch({ type: ON_ASSIGN, payload: { form, path, value, invalidity, }, });
+        static createOnRemove(path) {
+            return function onRemoveProxy(key) {
+                dispatch({ type: ON_REMOVE, payload: { form, path: [...path, key], } });
             };
         }
 
-        componentWillUnmount () {
+        static createOnAssign(path) {
+            return function onAssignProxy(obj) {
+                if (!obj || !(obj instanceof Object)) {
+                    throw new Error('expect onAssign value to be instance of object');
+                }
+                const valueShape = findProperties(path, formInputShape);
+                const value = mergeStateWithShape(obj, valueShape);
+                dispatch({ type: ON_ASSIGN, payload: { form, path, value, }, });
+            };
+        }
+
+        componentWillUnmount() {
             this.formSubscription();
             if (this.initialStateSubscription) {
                 this.initialStateSubscription();
@@ -185,4 +210,4 @@ const connector = (Component, { emptyState, validate = {}, format = {}, initialS
     };
 };
 
-export default (options) => (target) => connector(target, options);
+export default options => target => connector(target, options);

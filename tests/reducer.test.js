@@ -11,7 +11,7 @@ const initialState = freeze({
 
 describe('reducer', () => {
     test('SET_INITIAL_STATE', () => {
-        const nextState= form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
+        const nextState = form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
 
         expect(nextState).toEqual({
             test: {
@@ -31,8 +31,8 @@ describe('reducer', () => {
     });
 
     test('ON_FOCUS', () => {
-        let nextState= form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
-        nextState = form(freeze(nextState), { type: ON_FOCUS, payload: { form: 'test', path: [ 'todos', '1', 'description', ], }, });
+        let nextState = form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
+        nextState = form(freeze(nextState), { type: ON_FOCUS, payload: { form: 'test', path: ['todos', '1', 'description', ], }, });
         expect(nextState).toEqual({
             test: {
                 ...createFormLeaf('name', 'John', undefined, 'name'),
@@ -52,8 +52,8 @@ describe('reducer', () => {
     });
 
     test('ON_CHANGE', () => {
-        let nextState= form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
-        nextState = form(freeze(nextState), { type: ON_CHANGE, payload: { form: 'test', path: [ 'address', 'street', ], value: 'Some other road 2', invalid: true, }, });
+        let nextState = form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
+        nextState = form(freeze(nextState), { type: ON_CHANGE, payload: { form: 'test', path: ['address', 'street', ], value: 'Some other road 2', invalid: true, }, });
         expect(nextState).toEqual({
             test: {
                 ...createFormLeaf('name', 'John'),
@@ -69,7 +69,7 @@ describe('reducer', () => {
                 },
             },
         });
-        nextState = form(freeze(nextState), { type: ON_CHANGE, payload: { form: 'test', path: [ 'address', 'zip', ], value: '00500', invalid: false, }, });
+        nextState = form(freeze(nextState), { type: ON_CHANGE, payload: { form: 'test', path: ['address', 'zip', ], value: '00500', invalid: false, }, });
         expect(nextState).toEqual({
             test: {
                 ...createFormLeaf('name', 'John'),
@@ -88,8 +88,8 @@ describe('reducer', () => {
     });
 
     test('ON_BLUR', () => {
-        let nextState= form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
-        nextState = form(freeze(nextState), { type: ON_BLUR, payload: { form: 'test', path: [ 'todos', 1, 'description', ], }, });
+        let nextState = form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
+        nextState = form(freeze(nextState), { type: ON_BLUR, payload: { form: 'test', path: ['todos', 1, 'description', ], }, });
 
         expect(nextState).toEqual({
             test: {
@@ -109,8 +109,8 @@ describe('reducer', () => {
     });
 
     test('ON_ASSIGN', () => {
-        let nextState= form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
-        nextState = form(freeze(nextState), { type: ON_ASSIGN, payload: { form: 'test', path: [ 'address', ], value: { email: 'email@com', }, invalidity: { email: true, }, }, });
+        let nextState = form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
+        nextState = form(freeze(nextState), { type: ON_ASSIGN, payload: { form: 'test', path: ['address', ], value: { email: 'email@com', }, invalidity: { email: true, }, }, });
         expect(nextState).toEqual({
             test: {
                 ...createFormLeaf('name', 'John'),
@@ -130,8 +130,8 @@ describe('reducer', () => {
     });
 
     test('ON_REMOVE object from object', () => {
-        let nextState= form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
-        nextState = form(freeze(nextState), { type: ON_REMOVE, payload: { form: 'test', path: [ 'address', ], }, });
+        let nextState = form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
+        nextState = form(freeze(nextState), { type: ON_REMOVE, payload: { form: 'test', path: ['address', ], }, });
         expect(nextState).toEqual({
             test: {
                 ...createFormLeaf('name', 'John'),
@@ -144,8 +144,8 @@ describe('reducer', () => {
     });
 
     test('ON_REMOVE leaf from object', () => {
-        let nextState= form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
-        nextState = form(freeze(nextState), { type: ON_REMOVE, payload: { form: 'test', path: [ 'todos', 1, 'description', ], }, });
+        let nextState = form({}, { type: SET_INITIAL_STATE, payload: { form: 'test', value: initialState, }, });
+        nextState = form(freeze(nextState), { type: ON_REMOVE, payload: { form: 'test', path: ['todos', 1, 'description', ], }, });
         expect(nextState).toEqual({
             test: {
                 ...createFormLeaf('name', 'John'),
@@ -157,7 +157,7 @@ describe('reducer', () => {
                 },
                 todos: {
                     0: { ...createFormLeaf('description', 'Eat'), ...createFormLeaf('done', false), },
-                    1: {  ...createFormLeaf('done', true), },
+                    1: { ...createFormLeaf('done', true), },
                 },
             },
         });

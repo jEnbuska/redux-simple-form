@@ -1,9 +1,9 @@
 
-export function buildLeaf ({ value, initial = value, checked = true, name, ...params }) {
+export function buildLeaf({ value, initial = value, checked = true, name, ...params }) {
     return { __meta__: true, initial, left: false, input: { checked, value, name, }, invalid: false, visited: false, active: false, changed: false, ...params, };
 }
 
-export function createFormLeaf (name, value, checked) {
+export function createFormLeaf(name, value, checked) {
     if (checked === undefined) {
         checked = !!value;
     }

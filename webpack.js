@@ -7,9 +7,9 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const SRC_PATH = path.join(__dirname, 'src');
 const DIST_PATH = path.join(__dirname, 'dist');
 
-const baseConfig = (env) => ({
+const baseConfig = env => ({
     resolve: {
-        extensions: [ '.js', '.jsx', ],
+        extensions: ['.js', '.jsx', ],
         modules: [
             path.resolve(__dirname, 'node_modules'),
             path.join(__dirname, 'src'),
@@ -39,9 +39,9 @@ const baseConfig = (env) => ({
 });
 
 module.exports = {
-    bundle: [ 'babel-polyfill', 'whatwg-fetch', 'index.jsx', ],
+    bundle: ['babel-polyfill', 'whatwg-fetch', 'index.jsx', ],
     getPostCssPlugins: getPostCssPlugins(),
-    vendorLibs: [ 'react', 'react-dom', 'react-router-dom', 'redux', 'react-redux', 'redux-thunk', 'jwt-decode', 'prop-types', ],
+    vendorLibs: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux', 'redux-thunk', 'jwt-decode', 'prop-types', ],
     outputFileNameTemplate: '[name].[hash].js',
     outputPublicPath: '/',
     base: baseConfig,
